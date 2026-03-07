@@ -1,0 +1,16 @@
+services:
+  - type: web
+    name: kexing-api
+    env: node
+    rootDir: server
+    buildCommand: npm install
+    startCommand: npm run dev
+    envVars:
+      - key: NODE_VERSION
+        value: 20
+      - key: MONGODB_URI
+        sync: false
+      - key: JWT_SECRET
+        sync: false
+      - key: CORS_ORIGIN
+        sync: false

@@ -1,0 +1,11 @@
+﻿node_modules
+client/node_modules
+server/node_modules
+.next
+client/.next
+release
+*.zip
+.env
+.env.*
+server/.env
+client/.env
