@@ -53,24 +53,24 @@ export default function HomePage() {
         <div className="absolute inset-0 bg-gradient-to-b from-[#f5f5f7] via-white to-white" />
         <div className="absolute top-20 left-1/4 w-96 h-96 bg-[#0071e3]/5 rounded-full blur-3xl" />
         <div className="absolute bottom-20 right-1/4 w-80 h-80 bg-[#00c7be]/5 rounded-full blur-3xl" />
-        <div className="relative max-w-[980px] mx-auto px-6 pt-24 pb-32 text-center">
+        <div className="relative max-w-[980px] mx-auto px-4 md:px-6 pt-16 md:pt-24 pb-20 md:pb-32 text-center">
           <p className="text-[15px] font-medium text-[#0071e3] tracking-wide uppercase mb-4">高校选课与教师评价平台</p>
-          <h1 className="text-[56px] md:text-[72px] font-bold tracking-tight text-[#1d1d1f] leading-[1.05]">
+          <h1 className="text-[40px] sm:text-[50px] md:text-[72px] font-bold tracking-tight text-[#1d1d1f] leading-[1.05]">
             课星
           </h1>
-          <p className="mt-2 text-[20px] md:text-[24px] text-[#6e6e73] font-medium tracking-wide">CoursePilot</p>
-          <p className="mt-6 text-[24px] md:text-[28px] text-[#86868b] font-normal max-w-[560px] mx-auto leading-snug">
+          <p className="mt-2 text-[17px] md:text-[24px] text-[#6e6e73] font-medium tracking-wide">CoursePilot</p>
+          <p className="mt-5 text-[20px] md:text-[28px] text-[#86868b] font-normal max-w-[560px] mx-auto leading-snug">
             让选课更简单。
           </p>
-          <p className="mt-6 text-[17px] text-[#86868b] max-w-[480px] mx-auto leading-relaxed">
+          <p className="mt-5 text-[15px] md:text-[17px] text-[#86868b] max-w-[480px] mx-auto leading-relaxed">
             浏览课程、查看教师评分与评论、智能选课避坑，一站搞定你的大学选课。
           </p>
-          <div className="mt-14 flex flex-wrap justify-center gap-4">
-            <Link href="/courses" className="inline-flex items-center gap-2 px-8 py-4 rounded-[980px] bg-[#0071e3] text-white text-[17px] font-medium hover:bg-[#0077ed] transition-all duration-200 hover:-translate-y-0.5 shadow-lg shadow-[#0071e3]/20">
+          <div className="mt-10 md:mt-14 flex flex-wrap justify-center gap-3 md:gap-4">
+            <Link href="/courses" className="inline-flex items-center gap-2 px-6 md:px-8 py-3.5 md:py-4 rounded-[980px] bg-[#0071e3] text-white text-[16px] md:text-[17px] font-medium hover:bg-[#0077ed] transition-all duration-200 hover:-translate-y-0.5 shadow-lg shadow-[#0071e3]/20">
               浏览课程
               <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" /></svg>
             </Link>
-            <Link href="/teachers" className="inline-flex items-center gap-2 px-8 py-4 rounded-[980px] bg-[#1d1d1f] text-white text-[17px] font-medium hover:bg-[#424245] transition-all duration-200 hover:-translate-y-0.5">
+            <Link href="/teachers" className="inline-flex items-center gap-2 px-6 md:px-8 py-3.5 md:py-4 rounded-[980px] bg-[#1d1d1f] text-white text-[16px] md:text-[17px] font-medium hover:bg-[#424245] transition-all duration-200 hover:-translate-y-0.5">
               查看教师
               <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" /></svg>
             </Link>
