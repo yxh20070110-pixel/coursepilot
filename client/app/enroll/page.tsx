@@ -168,7 +168,7 @@ export default function EnrollPage() {
           <table className="min-w-[860px] w-full border-separate border-spacing-1">
             <thead>
               <tr>
-                <th className="p-2 bg-[#f5f5f7] rounded-lg text-left text-xs text-[#4b4b50]">节次</th>
+                <th className="p-2 bg-[#f5f5f7] rounded-lg text-center text-sm font-semibold text-[#3a3a3f]">节次</th>
                 {DAY_NAMES.slice(1).map((d, i) => (
                   <th key={d} className="p-2 bg-[#f5f5f7] rounded-lg text-xs text-[#4b4b50]">{d}</th>
                 ))}
@@ -177,8 +177,8 @@ export default function EnrollPage() {
             <tbody>
               {PERIODS.map((period) => (
                 <tr key={period.id}>
-                  <td className="p-2 text-[11px] text-[#6e6e73] bg-[#fafafa] rounded-lg whitespace-nowrap">
-                    <div className="font-medium text-[#1d1d1f] text-xs">{period.label}</div>
+                  <td className="p-2 text-center text-[#6e6e73] bg-[#fafafa] rounded-lg whitespace-nowrap">
+                    <div className="font-semibold text-[#1d1d1f] text-sm">{period.label}</div>
                   </td>
                   {Array.from({ length: 7 }, (_, idx) => idx + 1).map((day) => {
                     const inSlot = courses.filter((c) => isCourseOnDay(c, day) && isCourseInPeriod(c, period.start, period.end));

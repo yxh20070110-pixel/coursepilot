@@ -8,8 +8,8 @@ import { useAuth } from '@/app/providers';
 export default function RegisterPage() {
   const router = useRouter();
   const { register } = useAuth();
-  const [name, setName] = useState('');
-  const [email, setEmail] = useState('');
+  const [nickname, setNickname] = useState('');
+  const [studentId, setStudentId] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
@@ -18,7 +18,7 @@ export default function RegisterPage() {
     e.preventDefault();
     setError('');
     setLoading(true);
-    const result = await register(name, email, password);
+    const result = await register(nickname, studentId, password);
     if (result.error) { setError(result.error); setLoading(false); }
     else router.push('/');
   };
@@ -29,16 +29,16 @@ export default function RegisterPage() {
         <h1 className="text-2xl font-bold text-gray-900 text-center mb-6">注册</h1>
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">姓名</label>
-            <input type="text" value={name} onChange={(e) => setName(e.target.value)} required
+            <label className="block text-sm font-medium text-gray-700 mb-1">昵称</label>
+            <input type="text" value={nickname} onChange={(e) => setNickname(e.target.value)} required
               className="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              placeholder="请输入姓名" />
+              placeholder="请输入昵称" />
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">邮箱</label>
-            <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} required
+            <label className="block text-sm font-medium text-gray-700 mb-1">学号</label>
+            <input type="text" value={studentId} onChange={(e) => setStudentId(e.target.value.replace(/\D/g, '').slice(0, 10))} required
               className="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              placeholder="your@email.com" />
+              placeholder="请输入10位学号" maxLength={10} />
           </div>
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">密码</label>

@@ -17,8 +17,8 @@ interface User {
 interface AuthContextType {
   user: User | null;
   loading: boolean;
-  login: (email: string, password: string) => Promise<{ error?: string }>;
-  register: (name: string, email: string, password: string) => Promise<{ error?: string }>;
+  login: (studentId: string, password: string) => Promise<{ error?: string }>;
+  register: (name: string, studentId: string, password: string) => Promise<{ error?: string }>;
   logout: () => void;
 }
 
@@ -66,12 +66,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   }, [fetchUser]);
 
-  const login = async (email: string, password: string) => {
+  const login = async (studentId: string, password: string) => {
     try {
       const res = await fetch(`${API_BASE}/auth/login`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, password }),
+        body: JSON.stringify({ email: studentId, password }),
       });
       const data = await res.json();
       if (!res.ok) return { error: data.error };
@@ -84,12 +84,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   };
 
-  const register = async (name: string, email: string, password: string) => {
+  const register = async (name: string, studentId: string, password: string) => {
     try {
       const res = await fetch(`${API_BASE}/auth/register`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name, email, password }),
+        body: JSON.stringify({ name, email: studentId, password }),
       });
       const data = await res.json();
       if (!res.ok) return { error: data.error };

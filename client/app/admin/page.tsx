@@ -255,18 +255,27 @@ export default function AdminPage() {
             {editP && <button onClick={() => { setEditP(null); setPF({ major: '', grade: new Date().getFullYear(), semester: 1, selectedCourseIds: [] }); }} className="px-4 py-2 bg-gray-100 text-gray-700 text-sm rounded-lg hover:bg-gray-200 transition">取消编辑</button>}
           </div>
           <div className="mb-6">
-            <label className="block text-sm text-gray-600 mb-2">多选课程（按 Ctrl 或 Shift 可多选）</label>
-            <select
-              multiple
-              value={pForm.selectedCourseIds}
-              onChange={(e) => {
-                const values = Array.from(e.target.selectedOptions).map((opt) => opt.value);
-                setPF((f) => ({ ...f, selectedCourseIds: values }));
-              }}
-              className={`${inputCls} w-full h-56`}
-            >
-              {courseOptions.map((opt) => <option key={opt.id} value={opt.id}>{opt.label}</option>)}
-            </select>
+            <label className="block text-sm text-gray-600 mb-2">选择课程</label>
+            <div className="border border-gray-200 rounded-lg p-3 h-56 overflow-auto space-y-2">
+              {courseOptions.map((opt) => (
+                <label key={opt.id} className="flex items-center gap-2 text-sm text-gray-700 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={pForm.selectedCourseIds.includes(opt.id)}
+                    onChange={(e) => {
+                      setPF((f) => ({
+                        ...f,
+                        selectedCourseIds: e.target.checked
+                          ? [...f.selectedCourseIds, opt.id]
+                          : f.selectedCourseIds.filter((id) => id !== opt.id),
+                      }));
+                    }}
+                    className="w-4 h-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                  />
+                  <span>{opt.label}</span>
+                </label>
+              ))}
+            </div>
           </div>
           <div className="space-y-3">
             {plans.map((p: any) => (
@@ -361,7 +370,7 @@ export default function AdminPage() {
         <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
           <table className="w-full text-sm">
             <thead><tr className="text-left border-b border-gray-200">
-              <th className="pb-3 font-medium text-gray-500">姓名</th><th className="pb-3 font-medium text-gray-500">邮箱</th>
+              <th className="pb-3 font-medium text-gray-500">姓名</th><th className="pb-3 font-medium text-gray-500">学号</th>
               <th className="pb-3 font-medium text-gray-500">角色</th><th className="pb-3 font-medium text-gray-500">注册时间</th>
             </tr></thead>
             <tbody>{users.map((u: any) => (

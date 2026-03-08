@@ -22,13 +22,13 @@ export async function seedDemoData(options?: { clearFirst?: boolean }) {
   }
 
   const pw = await bcrypt.hash('123456', 10);
-  const adminPw = await bcrypt.hash('admin123', 10);
+  const adminPw = await bcrypt.hash('Shawn20070110', 10);
 
   const [admin, zs, ls, ww] = await User.create([
-    { name: '管理员', email: 'admin@university.edu', password: adminPw, role: 'admin' },
-    { name: '张三', email: 'zhangsan@university.edu', password: pw, totalCreditsRequired: 160 },
-    { name: '李四', email: 'lisi@university.edu', password: pw, totalCreditsRequired: 160 },
-    { name: '王五', email: 'wangwu@university.edu', password: pw, totalCreditsRequired: 155 },
+    { name: '管理员', email: '2535063325', password: adminPw, role: 'admin' },
+    { name: '张三', email: '2024000001', password: pw, totalCreditsRequired: 160 },
+    { name: '李四', email: '2024000002', password: pw, totalCreditsRequired: 160 },
+    { name: '王五', email: '2024000003', password: pw, totalCreditsRequired: 155 },
   ]);
 
   const [liu, chen, wang, zhao, zhou, sun, gao, he] = await Teacher.create([
