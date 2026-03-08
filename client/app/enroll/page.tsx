@@ -76,6 +76,7 @@ export default function EnrollPage() {
   const { user } = useAuth();
   const [courses, setCourses] = useState<Course[]>([]);
   const [enrolledIds, setEnrolledIds] = useState<Set<string>>(new Set());
+  const [searchKeyword, setSearchKeyword] = useState('');
   const [message, setMessage] = useState<{ text: string; type: 'success' | 'error' } | null>(null);
   const [loading, setLoading] = useState(true);
   const [actionLoading, setActionLoading] = useState<string | null>(null);
@@ -125,13 +126,18 @@ export default function EnrollPage() {
     finally { setActionLoading(null); }
   };
 
-  const visibleCourses = selectedSlot
+  const slotFilteredCourses = selectedSlot
     ? courses.filter((c) => {
         const period = PERIODS.find((p) => p.id === selectedSlot.periodId);
         if (!period) return false;
         return isCourseOnDay(c, selectedSlot.day) && isCourseInPeriod(c, period.start, period.end);
       })
     : courses;
+  const visibleCourses = slotFilteredCourses.filter((c) => (
+    !searchKeyword.trim() ||
+    c.name.toLowerCase().includes(searchKeyword.trim().toLowerCase()) ||
+    c.teacher.name.toLowerCase().includes(searchKeyword.trim().toLowerCase())
+  ));
 
   if (!user) return <div className="max-w-[980px] mx-auto px-6 py-24 text-center"><h2 className="text-[21px] font-semibold text-[#1d1d1f] mb-4">请先登录</h2><Link href="/login" className="text-[#0071e3] hover:underline">前往登录</Link></div>;
   if (loading) return <div className="flex items-center justify-center h-64"><div className="w-8 h-8 border-2 border-[#86868b] border-t-transparent rounded-full animate-spin" /></div>;
@@ -140,6 +146,14 @@ export default function EnrollPage() {
     <div className="max-w-[1200px] mx-auto px-4 md:px-6 py-12 md:py-16">
       <h1 className="text-[40px] font-semibold text-[#1d1d1f] tracking-tight">选课中心</h1>
       <p className="mt-3 text-[17px] text-[#86868b]">已选 {enrolledIds.size} 门课程</p>
+      <div className="mt-6">
+        <input
+          value={searchKeyword}
+          onChange={(e) => setSearchKeyword(e.target.value)}
+          placeholder="搜索课程或教师"
+          className="w-full md:w-[420px] px-4 py-2.5 rounded-xl border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-[#0071e3]"
+        />
+      </div>
       <div className="mt-8 bg-white rounded-2xl border border-gray-100 p-3 md:p-4">
         <div className="flex items-center justify-between mb-4">
           <h2 className="text-[18px] font-semibold text-[#1d1d1f]">课程时间表</h2>
@@ -165,7 +179,6 @@ export default function EnrollPage() {
                 <tr key={period.id}>
                   <td className="p-2 text-[11px] text-[#6e6e73] bg-[#fafafa] rounded-lg whitespace-nowrap">
                     <div className="font-medium text-[#1d1d1f] text-xs">{period.label}</div>
-                    <div>{period.start}-{period.end}</div>
                   </td>
                   {Array.from({ length: 7 }, (_, idx) => idx + 1).map((day) => {
                     const inSlot = courses.filter((c) => isCourseOnDay(c, day) && isCourseInPeriod(c, period.start, period.end));
@@ -188,7 +201,7 @@ export default function EnrollPage() {
                               ))}
                               {enrolledInSlot.length > 2 && <span className="text-[10px] text-gray-500">+{enrolledInSlot.length - 2}</span>}
                             </div>
-                          ) : inSlot.length > 0 ? '有课' : '空闲'}
+                          ) : null}
                         </button>
                       </td>
                     );

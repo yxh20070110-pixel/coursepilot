@@ -7,6 +7,20 @@ import { useRouter } from 'next/navigation';
 
 type Tab = 'teachers' | 'courses' | 'plans' | 'import' | 'comments' | 'users';
 const DAY = ['', '周一', '周二', '周三', '周四', '周五', '周六', '周日'];
+const PERIODS = [
+  { id: 1, start: '08:00', end: '08:45' },
+  { id: 2, start: '08:50', end: '09:35' },
+  { id: 3, start: '09:55', end: '10:40' },
+  { id: 4, start: '10:45', end: '11:30' },
+  { id: 5, start: '11:35', end: '12:20' },
+  { id: 6, start: '13:15', end: '14:00' },
+  { id: 7, start: '14:05', end: '14:50' },
+  { id: 8, start: '15:05', end: '15:50' },
+  { id: 9, start: '15:55', end: '16:40' },
+  { id: 10, start: '18:00', end: '18:45' },
+  { id: 11, start: '18:50', end: '19:35' },
+  { id: 12, start: '19:40', end: '20:25' },
+];
 const TABS: { key: Tab; label: string }[] = [
   { key: 'teachers', label: '教师管理' }, { key: 'courses', label: '课程管理' },
   { key: 'plans', label: '培养计划' },
@@ -14,27 +28,8 @@ const TABS: { key: Tab; label: string }[] = [
   { key: 'comments', label: '评论管理' }, { key: 'users', label: '用户管理' },
 ];
 
-const defaultSlotsText = '周1 08:00-09:40';
-const emptyPlanItem = () => ({ key: `${Date.now()}-${Math.random()}`, query: '', courseName: '', courseId: '' });
-
-function parseSlotsText(text: string) {
-  const lines = text.split(/\r?\n/).map((l) => l.trim()).filter(Boolean);
-  return lines.map((line) => {
-    const m = line.match(/^周?([1-7])\s+(\d{1,2}:\d{1,2})-(\d{1,2}:\d{1,2})$/);
-    if (!m) return null;
-    const norm = (t: string) => {
-      const [h, min] = t.split(':');
-      return `${h.padStart(2, '0')}:${min.padStart(2, '0')}`;
-    };
-    return { dayOfWeek: Number(m[1]), startTime: norm(m[2]), endTime: norm(m[3]) };
-  }).filter(Boolean) as Array<{ dayOfWeek: number; startTime: string; endTime: string }>;
-}
-
-function slotsToText(slots?: Array<{ dayOfWeek: number; startTime: string; endTime: string }>, fallback?: any) {
-  const valid = Array.isArray(slots) && slots.length > 0
-    ? slots
-    : [{ dayOfWeek: fallback?.dayOfWeek || 1, startTime: fallback?.startTime || '08:00', endTime: fallback?.endTime || '09:40' }];
-  return valid.map((s) => `周${s.dayOfWeek} ${s.startTime}-${s.endTime}`).join('\n');
+function periodIdFromTime(startTime: string) {
+  return PERIODS.find((p) => p.start === startTime)?.id || 1;
 }
 
 export default function AdminPage() {
@@ -49,7 +44,7 @@ export default function AdminPage() {
   const [tForm, setTF] = useState({ name: '', title: '', department: '', researchArea: '', tags: '' });
   const [editT, setEditT] = useState<string | null>(null);
   const [cForm, setCF] = useState({
-    name: '', credits: 3, dayOfWeek: 1, startTime: '08:00', endTime: '09:40', teacher: '', scheduleSlotsText: defaultSlotsText,
+    name: '', credits: 3, dayOfWeek: 1, startPeriod: 1, endPeriod: 2, teacher: '',
     courseCode: '', classroom: '', weeks: '', capacity: 0,
   });
   const [editC, setEditC] = useState<string | null>(null);
@@ -57,7 +52,7 @@ export default function AdminPage() {
     major: '',
     grade: new Date().getFullYear(),
     semester: 1,
-    items: [emptyPlanItem()],
+    selectedCourseIds: [] as string[],
   });
   const [editP, setEditP] = useState<string | null>(null);
   const [importFile, setImportFile] = useState<File | null>(null);
@@ -92,28 +87,37 @@ export default function AdminPage() {
   const delT = async (id: string) => { if (!confirm('确定删除？')) return; await fetch(`${API_BASE}/admin/teachers/${id}`, { method: 'DELETE', headers: h }); fetchAll(); };
 
   const saveC = async () => {
-    const slots = parseSlotsText(cForm.scheduleSlotsText);
-    if (!slots.length) { alert('请至少填写一个有效上课时间，例如：周1 08:00-09:40'); return; }
-    const payload = { ...cForm, scheduleSlots: slots, dayOfWeek: slots[0].dayOfWeek, startTime: slots[0].startTime, endTime: slots[0].endTime };
+    const startP = PERIODS.find((p) => p.id === Number(cForm.startPeriod));
+    const endP = PERIODS.find((p) => p.id === Number(cForm.endPeriod));
+    if (!startP || !endP) return;
+    if (startP.id > endP.id) { alert('上课节次不能晚于下课节次'); return; }
+    const payload = {
+      ...cForm,
+      dayOfWeek: Number(cForm.dayOfWeek),
+      startTime: startP.start,
+      endTime: endP.end,
+      scheduleSlots: [{ dayOfWeek: Number(cForm.dayOfWeek), startTime: startP.start, endTime: endP.end }],
+    };
     if (editC) await fetch(`${API_BASE}/admin/courses/${editC}`, { method: 'PUT', headers: h, body: JSON.stringify(payload) });
     else await fetch(`${API_BASE}/admin/courses`, { method: 'POST', headers: h, body: JSON.stringify(payload) });
     setCF({
-      name: '', credits: 3, dayOfWeek: 1, startTime: '08:00', endTime: '09:40', teacher: '', scheduleSlotsText: defaultSlotsText,
+      name: '', credits: 3, dayOfWeek: 1, startPeriod: 1, endPeriod: 2, teacher: '',
       courseCode: '', classroom: '', weeks: '', capacity: 0,
     }); setEditC(null); fetchAll();
   };
   const delC = async (id: string) => { if (!confirm('确定删除？')) return; await fetch(`${API_BASE}/admin/courses/${id}`, { method: 'DELETE', headers: h }); fetchAll(); };
   const delCm = async (id: string) => { if (!confirm('确定删除？')) return; await fetch(`${API_BASE}/admin/comments/${id}`, { method: 'DELETE', headers: h }); fetchAll(); };
   const saveP = async () => {
-    const items = pForm.items
-      .filter((item) => item.courseId && item.courseName)
-      .map((item) => ({ courseName: item.courseName, courseId: item.courseId, required: true }));
+    const items = pForm.selectedCourseIds
+      .map((id) => courses.find((c: any) => String(c._id) === id))
+      .filter(Boolean)
+      .map((c: any) => ({ courseName: c.name, courseId: c._id, required: true }));
     const payload = { major: pForm.major.trim(), grade: Number(pForm.grade), semester: Number(pForm.semester), items };
     if (!payload.major || !payload.grade || !payload.semester) return;
     if (!items.length) { alert('请至少绑定一门已有课程'); return; }
     if (editP) await fetch(`${API_BASE}/admin/training-plans/${editP}`, { method: 'PUT', headers: h, body: JSON.stringify(payload) });
     else await fetch(`${API_BASE}/admin/training-plans`, { method: 'POST', headers: h, body: JSON.stringify(payload) });
-    setPF({ major: '', grade: new Date().getFullYear(), semester: 1, items: [emptyPlanItem()] }); setEditP(null); fetchAll();
+    setPF({ major: '', grade: new Date().getFullYear(), semester: 1, selectedCourseIds: [] }); setEditP(null); fetchAll();
   };
   const delP = async (id: string) => { if (!confirm('确定删除？')) return; await fetch(`${API_BASE}/admin/training-plans/${id}`, { method: 'DELETE', headers: h }); fetchAll(); };
 
@@ -135,36 +139,7 @@ export default function AdminPage() {
   };
 
   const inputCls = 'px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500';
-  const formatCourseOption = (c: any) => c.name;
-  const courseOptions = courses.map((c: any) => ({ id: String(c._id), name: c.name, label: formatCourseOption(c) }));
-  const applyCourseByValue = (idx: number, value: string) => {
-    const matched = courseOptions.find((opt) => opt.label === value) || courseOptions.find((opt) => opt.name === value);
-    setPF((prev) => {
-      const nextItems = [...prev.items];
-      const current = nextItems[idx];
-      if (!current) return prev;
-      if (matched) {
-        nextItems[idx] = { ...current, query: value, courseId: matched.id, courseName: matched.name };
-      } else {
-        nextItems[idx] = { ...current, query: value, courseId: '', courseName: '' };
-      }
-      return { ...prev, items: nextItems };
-    });
-  };
-  const applyCourseById = (idx: number, courseId: string) => {
-    const matched = courseOptions.find((opt) => opt.id === courseId);
-    setPF((prev) => {
-      const nextItems = [...prev.items];
-      const current = nextItems[idx];
-      if (!current) return prev;
-      if (matched) {
-        nextItems[idx] = { ...current, query: matched.label, courseId: matched.id, courseName: matched.name };
-      } else {
-        nextItems[idx] = { ...current, query: '', courseId: '', courseName: '' };
-      }
-      return { ...prev, items: nextItems };
-    });
-  };
+  const courseOptions = courses.map((c: any) => ({ id: String(c._id), label: c.name }));
 
   return (
     <div className="max-w-7xl mx-auto px-4 py-8">
@@ -211,11 +186,15 @@ export default function AdminPage() {
             <input placeholder="课程名" value={cForm.name} onChange={e => setCF(f => ({ ...f, name: e.target.value }))} className={inputCls} />
             <input placeholder="课程代码" value={cForm.courseCode} onChange={e => setCF(f => ({ ...f, courseCode: e.target.value }))} className={inputCls} />
             <input type="number" placeholder="学分" value={cForm.credits} onChange={e => setCF(f => ({ ...f, credits: +e.target.value }))} className={inputCls} />
-            <select value={cForm.dayOfWeek} onChange={e => setCF(f => ({ ...f, dayOfWeek: +e.target.value }))} className={inputCls} disabled>
+            <select value={cForm.dayOfWeek} onChange={e => setCF(f => ({ ...f, dayOfWeek: +e.target.value }))} className={inputCls}>
               {[1,2,3,4,5,6,7].map(d => <option key={d} value={d}>{DAY[d]}</option>)}
             </select>
-            <input type="time" value={cForm.startTime} onChange={e => setCF(f => ({ ...f, startTime: e.target.value }))} className={inputCls} disabled />
-            <input type="time" value={cForm.endTime} onChange={e => setCF(f => ({ ...f, endTime: e.target.value }))} className={inputCls} disabled />
+            <select value={cForm.startPeriod} onChange={e => setCF(f => ({ ...f, startPeriod: +e.target.value }))} className={inputCls}>
+              {PERIODS.map((p) => <option key={p.id} value={p.id}>第{p.id}节</option>)}
+            </select>
+            <select value={cForm.endPeriod} onChange={e => setCF(f => ({ ...f, endPeriod: +e.target.value }))} className={inputCls}>
+              {PERIODS.map((p) => <option key={p.id} value={p.id}>第{p.id}节</option>)}
+            </select>
             <input placeholder="教室" value={cForm.classroom} onChange={e => setCF(f => ({ ...f, classroom: e.target.value }))} className={inputCls} />
             <input placeholder="周次" value={cForm.weeks} onChange={e => setCF(f => ({ ...f, weeks: e.target.value }))} className={inputCls} />
             <input type="number" placeholder="容量" value={cForm.capacity} onChange={e => setCF(f => ({ ...f, capacity: +e.target.value }))} className={inputCls} />
@@ -225,13 +204,7 @@ export default function AdminPage() {
             </select>
             <button onClick={saveC} disabled={!cForm.name || !cForm.teacher} className="px-4 py-2 bg-blue-600 text-white text-sm rounded-lg hover:bg-blue-700 disabled:opacity-50 transition">{editC ? '保存' : '添加'}</button>
           </div>
-          <textarea
-            placeholder={'每行一个时间段，例如：\n周1 08:00-09:40\n周3 14:05-14:50'}
-            value={cForm.scheduleSlotsText}
-            onChange={(e) => setCF((f) => ({ ...f, scheduleSlotsText: e.target.value }))}
-            className={`${inputCls} w-full min-h-[88px] mb-6`}
-          />
-          {editC && <button onClick={() => { setEditC(null); setCF({ name: '', credits: 3, dayOfWeek: 1, startTime: '08:00', endTime: '09:40', teacher: '', scheduleSlotsText: defaultSlotsText, courseCode: '', classroom: '', weeks: '', capacity: 0 }); }} className="text-sm text-gray-400 hover:text-gray-600 mb-4 block">取消编辑</button>}
+          {editC && <button onClick={() => { setEditC(null); setCF({ name: '', credits: 3, dayOfWeek: 1, startPeriod: 1, endPeriod: 2, teacher: '', courseCode: '', classroom: '', weeks: '', capacity: 0 }); }} className="text-sm text-gray-400 hover:text-gray-600 mb-4 block">取消编辑</button>}
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead><tr className="text-left border-b border-gray-200">
@@ -248,7 +221,21 @@ export default function AdminPage() {
                       .join(' / ')}
                   </td><td className="py-3 text-gray-600">{c.classroom || '-'}</td><td className="py-3 text-gray-600">{c.weeks || '-'}</td><td className="py-3 text-gray-600">{c.capacity || 0}</td>
                   <td className="py-3 space-x-3">
-                    <button onClick={() => { setCF({ name: c.name, credits: c.credits, dayOfWeek: c.dayOfWeek, startTime: c.startTime, endTime: c.endTime, teacher: c.teacher?._id || '', scheduleSlotsText: slotsToText(c.scheduleSlots, c), courseCode: c.courseCode || '', classroom: c.classroom || '', weeks: c.weeks || '', capacity: c.capacity || 0 }); setEditC(c._id); }} className="text-blue-600 hover:underline">编辑</button>
+                    <button onClick={() => {
+                      setCF({
+                        name: c.name,
+                        credits: c.credits,
+                        dayOfWeek: c.dayOfWeek,
+                        startPeriod: periodIdFromTime(c.startTime),
+                        endPeriod: PERIODS.find((p) => p.end === c.endTime)?.id || periodIdFromTime(c.startTime),
+                        teacher: c.teacher?._id || '',
+                        courseCode: c.courseCode || '',
+                        classroom: c.classroom || '',
+                        weeks: c.weeks || '',
+                        capacity: c.capacity || 0,
+                      });
+                      setEditC(c._id);
+                    }} className="text-blue-600 hover:underline">编辑</button>
                     <button onClick={() => delC(c._id)} className="text-red-600 hover:underline">删除</button>
                   </td>
                 </tr>
@@ -265,48 +252,21 @@ export default function AdminPage() {
             <input type="number" placeholder="年级（如：2024）" value={pForm.grade} onChange={e => setPF(f => ({ ...f, grade: +e.target.value }))} className={inputCls} />
             <input type="number" placeholder="学期（如：1）" value={pForm.semester} onChange={e => setPF(f => ({ ...f, semester: +e.target.value }))} className={inputCls} />
             <button onClick={saveP} disabled={!pForm.major || !pForm.grade || !pForm.semester} className="px-4 py-2 bg-blue-600 text-white text-sm rounded-lg hover:bg-blue-700 disabled:opacity-50 transition">{editP ? '保存计划' : '新增计划'}</button>
-            {editP && <button onClick={() => { setEditP(null); setPF({ major: '', grade: new Date().getFullYear(), semester: 1, items: [emptyPlanItem()] }); }} className="px-4 py-2 bg-gray-100 text-gray-700 text-sm rounded-lg hover:bg-gray-200 transition">取消编辑</button>}
+            {editP && <button onClick={() => { setEditP(null); setPF({ major: '', grade: new Date().getFullYear(), semester: 1, selectedCourseIds: [] }); }} className="px-4 py-2 bg-gray-100 text-gray-700 text-sm rounded-lg hover:bg-gray-200 transition">取消编辑</button>}
           </div>
-          <datalist id="plan-course-options">
-            {courseOptions.map((opt) => (
-              <option key={opt.id} value={opt.label} />
-            ))}
-          </datalist>
-          <div className="space-y-3 mb-6">
-            {pForm.items.map((item, idx) => (
-              <div key={item.key} className="grid grid-cols-1 md:grid-cols-12 gap-2 items-center">
-                <input
-                  list="plan-course-options"
-                  placeholder="输入课程名自动补全（可直接选下拉）"
-                  value={item.query}
-                  onChange={(e) => applyCourseByValue(idx, e.target.value)}
-                  className={`md:col-span-7 ${inputCls}`}
-                />
-                <select
-                  value={item.courseId}
-                  onChange={(e) => applyCourseById(idx, e.target.value)}
-                  className={`md:col-span-4 ${inputCls}`}
-                >
-                  <option value="">或从下拉选择课程</option>
-                  {courseOptions.map((opt) => <option key={opt.id} value={opt.id}>{opt.label}</option>)}
-                </select>
-                <button
-                  onClick={() => setPF((prev) => ({ ...prev, items: prev.items.length > 1 ? prev.items.filter((_, i) => i !== idx) : prev.items }))}
-                  className="md:col-span-1 px-3 py-2 bg-red-50 text-red-600 rounded-lg text-sm hover:bg-red-100 transition"
-                >
-                  删除
-                </button>
-                <div className="md:col-span-12 text-xs text-gray-500">
-                  {item.courseId ? `已绑定 courseId: ${item.courseId}` : '尚未绑定到已有课程'}
-                </div>
-              </div>
-            ))}
-            <button
-              onClick={() => setPF((prev) => ({ ...prev, items: [...prev.items, emptyPlanItem()] }))}
-              className="px-3 py-2 bg-gray-100 text-gray-700 rounded-lg text-sm hover:bg-gray-200 transition"
+          <div className="mb-6">
+            <label className="block text-sm text-gray-600 mb-2">多选课程（按 Ctrl 或 Shift 可多选）</label>
+            <select
+              multiple
+              value={pForm.selectedCourseIds}
+              onChange={(e) => {
+                const values = Array.from(e.target.selectedOptions).map((opt) => opt.value);
+                setPF((f) => ({ ...f, selectedCourseIds: values }));
+              }}
+              className={`${inputCls} w-full h-56`}
             >
-              + 添加课程
-            </button>
+              {courseOptions.map((opt) => <option key={opt.id} value={opt.id}>{opt.label}</option>)}
+            </select>
           </div>
           <div className="space-y-3">
             {plans.map((p: any) => (
@@ -319,16 +279,9 @@ export default function AdminPage() {
                         major: p.major,
                         grade: p.grade,
                         semester: p.semester,
-                        items: (p.items || []).map((i: any) => {
-                          const cid = typeof i.courseId === 'string' ? i.courseId : String(i.courseId?._id || '');
-                          const matched = courseOptions.find((opt) => opt.id === cid);
-                          return {
-                            key: `${Date.now()}-${Math.random()}`,
-                            query: matched?.label || i.courseName,
-                            courseName: i.courseName,
-                            courseId: cid,
-                          };
-                        }).concat((p.items || []).length ? [] : [emptyPlanItem()]),
+                        selectedCourseIds: (p.items || [])
+                          .map((i: any) => (typeof i.courseId === 'string' ? i.courseId : String(i.courseId?._id || '')))
+                          .filter(Boolean),
                       });
                       setEditP(p._id);
                     }} className="text-blue-600 hover:underline">编辑</button>
