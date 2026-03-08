@@ -4,7 +4,6 @@ import { useEffect, useState } from 'react';
 import { useParams } from 'next/navigation';
 import Link from 'next/link';
 import { API_BASE } from '@/lib/api';
-import TeacherRatingBlock from '@/components/TeacherRatingBlock';
 import CourseReviewBlock from '@/components/CourseReviewBlock';
 import PhotoWall from '@/components/PhotoWall';
 
@@ -18,6 +17,13 @@ interface Course {
   startTime: string;
   endTime: string;
   teacher: { _id: string; name: string; title: string; department?: string };
+  offerings?: Array<{
+    _id: string;
+    dayOfWeek: number;
+    startTime: string;
+    endTime: string;
+    teacher: { _id: string; name: string; title: string; department?: string };
+  }>;
 }
 
 export default function CourseDetailPage() {
@@ -58,8 +64,37 @@ export default function CourseDetailPage() {
       </div>
 
       <div className="bg-[#f5f5f7] rounded-3xl p-8 md:p-12">
-        <h2 className="text-[21px] font-semibold text-[#1d1d1f] mb-8">授课教师 · 评分与评论</h2>
-        <TeacherRatingBlock teacherId={course.teacher._id} />
+        <h2 className="text-[21px] font-semibold text-[#1d1d1f] mb-2">本课程授课安排</h2>
+        <p className="text-[15px] text-[#86868b] mb-8">
+          同一课程可能由多位老师在不同时间段授课，请按时间段选择并查看对应老师详情。
+        </p>
+        <div className="space-y-4">
+          {(course.offerings && course.offerings.length > 0 ? course.offerings : [{
+            _id: course._id,
+            dayOfWeek: course.dayOfWeek,
+            startTime: course.startTime,
+            endTime: course.endTime,
+            teacher: course.teacher,
+          }]).map((item) => (
+            <div key={item._id} className="bg-white rounded-2xl border border-gray-100 p-5 flex flex-wrap items-center justify-between gap-4">
+              <div>
+                <p className="font-semibold text-[#1d1d1f]">{item.teacher.name} · {item.teacher.title}</p>
+                <p className="text-sm text-[#86868b] mt-1">
+                  上课时间：{DAY_NAMES[item.dayOfWeek]} {item.startTime}-{item.endTime}
+                </p>
+                {item.teacher.department && (
+                  <p className="text-sm text-[#86868b]">院系：{item.teacher.department}</p>
+                )}
+              </div>
+              <Link
+                href={`/teachers/${item.teacher._id}`}
+                className="px-5 py-2.5 rounded-full bg-[#0071e3] text-white text-sm font-medium hover:bg-[#0077ed] transition"
+              >
+                查看授课老师详情
+              </Link>
+            </div>
+          ))}
+        </div>
       </div>
       <CourseReviewBlock courseId={course._id} />
       <PhotoWall type="course" targetId={course._id} title="课程照片墙（板书/课程大纲）" />

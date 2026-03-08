@@ -48,11 +48,6 @@ export default function LoginPage() {
         <p className="text-center text-sm text-gray-500 mt-6">
           还没有账号？ <Link href="/register" className="text-blue-600 hover:underline">立即注册</Link>
         </p>
-        <div className="mt-6 p-4 bg-gray-50 rounded-xl text-xs text-gray-500">
-          <p className="font-medium mb-1">测试账号：</p>
-          <p>管理员：admin@university.edu / admin123</p>
-          <p>学生：zhangsan@university.edu / 123456</p>
-        </div>
       </div>
     </div>
   );

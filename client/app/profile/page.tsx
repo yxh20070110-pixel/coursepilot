@@ -53,13 +53,17 @@ export default function ProfilePage() {
         ) : (
           <div className="space-y-4">
             {enrollments.map((e) => (
-              <div key={e._id} className="flex justify-between items-center p-5 bg-[#f5f5f7] rounded-2xl">
+              <Link
+                key={e._id}
+                href={`/courses/${e.course._id}`}
+                className="flex justify-between items-center p-5 bg-[#f5f5f7] rounded-2xl hover:bg-[#ececf0] transition-colors"
+              >
                 <div>
                   <p className="font-semibold text-[#1d1d1f]">{e.course.name}</p>
                   <p className="text-[14px] text-[#86868b] mt-1">{e.course.teacher.name} · {DAY_NAMES[e.course.dayOfWeek]} {e.course.startTime}-{e.course.endTime}</p>
                 </div>
-                <span className="text-[14px] text-[#0071e3] font-medium">{e.course.credits} 学分</span>
-              </div>
+                <span className="text-[14px] text-[#0071e3] font-medium">{e.course.credits} 学分 · 查看详情</span>
+              </Link>
             ))}
           </div>
         )}
