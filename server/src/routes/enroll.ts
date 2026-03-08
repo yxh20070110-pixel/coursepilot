@@ -5,6 +5,21 @@ import { auth } from '../middleware/auth';
 
 const router = Router();
 
+function slotsOf(course: any) {
+  if (Array.isArray(course?.scheduleSlots) && course.scheduleSlots.length > 0) return course.scheduleSlots;
+  return [{ dayOfWeek: course.dayOfWeek, startTime: course.startTime, endTime: course.endTime }];
+}
+
+function hasConflict(a: any, b: any) {
+  const aSlots = slotsOf(a);
+  const bSlots = slotsOf(b);
+  return aSlots.some((sa: any) => bSlots.some((sb: any) => (
+    sa.dayOfWeek === sb.dayOfWeek &&
+    sa.startTime < sb.endTime &&
+    sa.endTime > sb.startTime
+  )));
+}
+
 router.post('/', auth, async (req, res) => {
   try {
     const { courseId } = req.body;
@@ -20,11 +35,7 @@ router.post('/', auth, async (req, res) => {
 
     const conflicting = enrollments.find((e) => {
       const enrolled = e.course as any;
-      return (
-        enrolled.dayOfWeek === course.dayOfWeek &&
-        course.startTime < enrolled.endTime &&
-        course.endTime > enrolled.startTime
-      );
+      return hasConflict(course, enrolled);
     });
 
     if (conflicting) {

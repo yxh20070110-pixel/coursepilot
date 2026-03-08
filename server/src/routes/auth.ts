@@ -9,7 +9,7 @@ const JWT_SECRET = process.env.JWT_SECRET || 'course-helper-jwt-secret-2024';
 
 router.post('/register', async (req, res) => {
   try {
-    const { name, email, password } = req.body;
+    const { name, email, password, major, grade } = req.body;
     if (!name || !email || !password) return res.status(400).json({ error: '请填写完整信息' });
     if (password.length < 6) return res.status(400).json({ error: '密码至少6位' });
 
@@ -17,12 +17,26 @@ router.post('/register', async (req, res) => {
     if (existing) return res.status(400).json({ error: '该邮箱已注册' });
 
     const hashed = await bcrypt.hash(password, 10);
-    const user = await User.create({ name, email, password: hashed });
+    const user = await User.create({
+      name,
+      email,
+      password: hashed,
+      major: major || '',
+      grade: Number(grade || new Date().getFullYear()),
+    });
 
     const token = jwt.sign({ userId: user._id, role: user.role }, JWT_SECRET, { expiresIn: '7d' });
     res.json({
       token,
-      user: { id: user._id, name: user.name, email: user.email, role: user.role, totalCreditsRequired: user.totalCreditsRequired },
+      user: {
+        id: user._id,
+        name: user.name,
+        email: user.email,
+        role: user.role,
+        totalCreditsRequired: user.totalCreditsRequired,
+        major: user.major,
+        grade: user.grade,
+      },
     });
   } catch {
     res.status(500).json({ error: '注册失败' });
@@ -42,7 +56,15 @@ router.post('/login', async (req, res) => {
     const token = jwt.sign({ userId: user._id, role: user.role }, JWT_SECRET, { expiresIn: '7d' });
     res.json({
       token,
-      user: { id: user._id, name: user.name, email: user.email, role: user.role, totalCreditsRequired: user.totalCreditsRequired },
+      user: {
+        id: user._id,
+        name: user.name,
+        email: user.email,
+        role: user.role,
+        totalCreditsRequired: user.totalCreditsRequired,
+        major: user.major,
+        grade: user.grade,
+      },
     });
   } catch {
     res.status(500).json({ error: '登录失败' });

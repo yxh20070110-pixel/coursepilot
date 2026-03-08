@@ -10,6 +10,8 @@ interface User {
   email: string;
   role: string;
   totalCreditsRequired: number;
+  major?: string;
+  grade?: number;
 }
 
 interface AuthContextType {

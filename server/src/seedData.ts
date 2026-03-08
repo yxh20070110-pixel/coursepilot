@@ -8,6 +8,7 @@ import Enrollment from './models/Enrollment';
 import Like from './models/Like';
 import CourseReview from './models/CourseReview';
 import Photo from './models/Photo';
+import TrainingPlan from './models/TrainingPlan';
 
 export async function seedDemoData(options?: { clearFirst?: boolean }) {
   const clearFirst = !!options?.clearFirst;
@@ -16,7 +17,7 @@ export async function seedDemoData(options?: { clearFirst?: boolean }) {
     await Promise.all([
       User.deleteMany({}), Teacher.deleteMany({}), Course.deleteMany({}),
       Review.deleteMany({}), Comment.deleteMany({}), Enrollment.deleteMany({}), Like.deleteMany({}),
-      CourseReview.deleteMany({}), Photo.deleteMany({}),
+      CourseReview.deleteMany({}), Photo.deleteMany({}), TrainingPlan.deleteMany({}),
     ]);
   }
 
@@ -42,7 +43,11 @@ export async function seedDemoData(options?: { clearFirst?: boolean }) {
   ]);
 
   const courses = await Course.create([
-    { name: '高等数学', credits: 5, dayOfWeek: 1, startTime: '08:00', endTime: '09:40', teacher: liu._id },
+    { name: '高等数学', credits: 5, dayOfWeek: 1, startTime: '08:00', endTime: '09:40', scheduleSlots: [
+      { dayOfWeek: 1, startTime: '08:00', endTime: '09:40' },
+      { dayOfWeek: 3, startTime: '08:00', endTime: '09:40' },
+      { dayOfWeek: 5, startTime: '08:00', endTime: '09:40' },
+    ], teacher: liu._id },
     { name: '线性代数', credits: 4, dayOfWeek: 2, startTime: '10:00', endTime: '11:40', teacher: liu._id },
     { name: '大学英语', credits: 3, dayOfWeek: 1, startTime: '10:00', endTime: '11:40', teacher: chen._id },
     { name: '程序设计', credits: 4, dayOfWeek: 3, startTime: '14:00', endTime: '15:40', teacher: wang._id },
@@ -114,5 +119,28 @@ export async function seedDemoData(options?: { clearFirst?: boolean }) {
     { user: ls._id, course: courses[0]._id, rating: 4, content: '课程有难度，但收获很大。', isAnonymous: true },
     { user: ww._id, course: courses[3]._id, rating: 5, content: '实践项目很多，提升很快。', isAnonymous: false },
     { user: zs._id, course: courses[7]._id, rating: 4, content: '数据库原理讲得系统，作业也有帮助。', isAnonymous: false },
+  ]);
+
+  await TrainingPlan.create([
+    {
+      major: '计算机科学与技术',
+      grade: 2024,
+      semester: 1,
+      items: [
+        { courseName: '高等数学', courseId: courses[0]._id, required: true },
+        { courseName: '大学英语', courseId: courses[2]._id, required: true },
+        { courseName: '程序设计', courseId: courses[3]._id, required: true },
+      ],
+    },
+    {
+      major: '计算机科学与技术',
+      grade: 2024,
+      semester: 2,
+      items: [
+        { courseName: '线性代数', courseId: courses[1]._id, required: true },
+        { courseName: '数据结构', courseId: courses[4]._id, required: true },
+        { courseName: '数据库原理', courseId: courses[7]._id, required: true },
+      ],
+    },
   ]);
 }

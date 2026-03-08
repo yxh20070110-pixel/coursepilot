@@ -22,13 +22,19 @@ router.get('/:id', async (req, res) => {
       .populate('teacher')
       .sort({ dayOfWeek: 1, startTime: 1 });
 
-    const offerings = sameNameCourses.map((c: any) => ({
-      _id: c._id,
-      dayOfWeek: c.dayOfWeek,
-      startTime: c.startTime,
-      endTime: c.endTime,
-      teacher: c.teacher,
-    }));
+    const offerings = sameNameCourses.flatMap((c: any) => {
+      const slots = Array.isArray(c.scheduleSlots) && c.scheduleSlots.length > 0
+        ? c.scheduleSlots
+        : [{ dayOfWeek: c.dayOfWeek, startTime: c.startTime, endTime: c.endTime }];
+      return slots.map((slot: any) => ({
+        _id: `${c._id}-${slot.dayOfWeek}-${slot.startTime}`,
+        courseId: c._id,
+        dayOfWeek: slot.dayOfWeek,
+        startTime: slot.startTime,
+        endTime: slot.endTime,
+        teacher: c.teacher,
+      }));
+    });
 
     res.json({
       ...course.toObject(),

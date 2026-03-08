@@ -6,6 +6,8 @@ export interface IUser extends Document {
   password: string;
   role: 'user' | 'admin';
   totalCreditsRequired: number;
+  major: string;
+  grade: number;
 }
 
 const userSchema = new Schema<IUser>({
@@ -14,6 +16,8 @@ const userSchema = new Schema<IUser>({
   password: { type: String, required: true },
   role: { type: String, enum: ['user', 'admin'], default: 'user' },
   totalCreditsRequired: { type: Number, default: 160 },
+  major: { type: String, default: '' },
+  grade: { type: Number, default: new Date().getFullYear() },
 }, { timestamps: true });
 
 export default mongoose.model<IUser>('User', userSchema);

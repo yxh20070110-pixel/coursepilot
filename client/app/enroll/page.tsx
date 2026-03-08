@@ -22,8 +22,14 @@ const PERIODS = [
 ];
 
 interface Course {
-  _id: string; name: string; credits: number; dayOfWeek: number;
-  startTime: string; endTime: string; teacher: { _id: string; name: string; title: string };
+  _id: string;
+  name: string;
+  credits: number;
+  dayOfWeek: number;
+  startTime: string;
+  endTime: string;
+  scheduleSlots?: Array<{ dayOfWeek: number; startTime: string; endTime: string }>;
+  teacher: { _id: string; name: string; title: string };
 }
 
 function toMinutes(t: string) {
@@ -32,11 +38,38 @@ function toMinutes(t: string) {
 }
 
 function isCourseInPeriod(course: Course, periodStart: string, periodEnd: string) {
-  const cStart = toMinutes(course.startTime);
-  const cEnd = toMinutes(course.endTime);
+  const slots = (Array.isArray(course.scheduleSlots) && course.scheduleSlots.length > 0)
+    ? course.scheduleSlots
+    : [{ dayOfWeek: course.dayOfWeek, startTime: course.startTime, endTime: course.endTime }];
   const pStart = toMinutes(periodStart);
   const pEnd = toMinutes(periodEnd);
-  return cStart < pEnd && cEnd > pStart;
+  return slots.some((slot) => {
+    const cStart = toMinutes(slot.startTime);
+    const cEnd = toMinutes(slot.endTime);
+    return cStart < pEnd && cEnd > pStart;
+  });
+}
+
+function isCourseOnDay(course: Course, day: number) {
+  const slots = (Array.isArray(course.scheduleSlots) && course.scheduleSlots.length > 0)
+    ? course.scheduleSlots
+    : [{ dayOfWeek: course.dayOfWeek, startTime: course.startTime, endTime: course.endTime }];
+  return slots.some((slot) => slot.dayOfWeek === day);
+}
+
+function colorForCourse(key: string) {
+  const palette = [
+    'bg-rose-100 text-rose-700 border-rose-200',
+    'bg-blue-100 text-blue-700 border-blue-200',
+    'bg-emerald-100 text-emerald-700 border-emerald-200',
+    'bg-violet-100 text-violet-700 border-violet-200',
+    'bg-amber-100 text-amber-700 border-amber-200',
+    'bg-cyan-100 text-cyan-700 border-cyan-200',
+    'bg-fuchsia-100 text-fuchsia-700 border-fuchsia-200',
+  ];
+  let sum = 0;
+  for (let i = 0; i < key.length; i += 1) sum += key.charCodeAt(i);
+  return palette[sum % palette.length];
 }
 
 export default function EnrollPage() {
@@ -69,7 +102,14 @@ export default function EnrollPage() {
       const res = await fetch(`${API_BASE}/enroll`, { method: 'POST', headers: authHeaders(), body: JSON.stringify({ courseId }) });
       const data = await res.json();
       if (!res.ok) {
-        const msg = data.conflictWith ? `时间冲突！与「${data.conflictWith.name}」(${DAY_NAMES[data.conflictWith.dayOfWeek]} ${data.conflictWith.startTime}-${data.conflictWith.endTime}) 冲突` : data.error;
+        const conflictSlots = Array.isArray(data.conflictWith?.scheduleSlots) && data.conflictWith.scheduleSlots.length > 0
+          ? data.conflictWith.scheduleSlots
+          : [{ dayOfWeek: data.conflictWith?.dayOfWeek, startTime: data.conflictWith?.startTime, endTime: data.conflictWith?.endTime }];
+        const conflictLabel = conflictSlots
+          .filter((s: any) => s?.dayOfWeek)
+          .map((s: any) => `${DAY_NAMES[s.dayOfWeek]} ${s.startTime}-${s.endTime}`)
+          .join(' / ');
+        const msg = data.conflictWith ? `时间冲突！与「${data.conflictWith.name}」(${conflictLabel}) 冲突` : data.error;
         setMessage({ text: msg, type: 'error' });
       } else { setMessage({ text: '选课成功', type: 'success' }); fetchData(); }
     } catch { setMessage({ text: '选课失败', type: 'error' }); }
@@ -89,7 +129,7 @@ export default function EnrollPage() {
     ? courses.filter((c) => {
         const period = PERIODS.find((p) => p.id === selectedSlot.periodId);
         if (!period) return false;
-        return c.dayOfWeek === selectedSlot.day && isCourseInPeriod(c, period.start, period.end);
+        return isCourseOnDay(c, selectedSlot.day) && isCourseInPeriod(c, period.start, period.end);
       })
     : courses;
 
@@ -100,9 +140,9 @@ export default function EnrollPage() {
     <div className="max-w-[1200px] mx-auto px-4 md:px-6 py-12 md:py-16">
       <h1 className="text-[40px] font-semibold text-[#1d1d1f] tracking-tight">选课中心</h1>
       <p className="mt-3 text-[17px] text-[#86868b]">已选 {enrolledIds.size} 门课程</p>
-      <div className="mt-8 bg-white rounded-2xl border border-gray-100 p-4 md:p-6">
+      <div className="mt-8 bg-white rounded-2xl border border-gray-100 p-3 md:p-4">
         <div className="flex items-center justify-between mb-4">
-          <h2 className="text-[20px] font-semibold text-[#1d1d1f]">课程时间表</h2>
+          <h2 className="text-[18px] font-semibold text-[#1d1d1f]">课程时间表</h2>
           <button
             onClick={() => setSelectedSlot(null)}
             className="text-sm text-[#0071e3] hover:underline"
@@ -111,45 +151,44 @@ export default function EnrollPage() {
           </button>
         </div>
         <div className="overflow-x-auto">
-          <table className="min-w-[980px] w-full border-collapse">
+          <table className="min-w-[860px] w-full border-separate border-spacing-1">
             <thead>
               <tr>
-                <th className="border border-gray-200 p-2 bg-[#f5f5f7] text-left text-sm text-[#4b4b50]">节次</th>
+                <th className="p-2 bg-[#f5f5f7] rounded-lg text-left text-xs text-[#4b4b50]">节次</th>
                 {DAY_NAMES.slice(1).map((d, i) => (
-                  <th key={d} className="border border-gray-200 p-2 bg-[#f5f5f7] text-sm text-[#4b4b50]">{d}</th>
+                  <th key={d} className="p-2 bg-[#f5f5f7] rounded-lg text-xs text-[#4b4b50]">{d}</th>
                 ))}
               </tr>
             </thead>
             <tbody>
               {PERIODS.map((period) => (
                 <tr key={period.id}>
-                  <td className="border border-gray-200 p-2 text-xs text-[#6e6e73] bg-[#fafafa] whitespace-nowrap">
-                    <div className="font-medium text-[#1d1d1f]">{period.label}</div>
+                  <td className="p-2 text-[11px] text-[#6e6e73] bg-[#fafafa] rounded-lg whitespace-nowrap">
+                    <div className="font-medium text-[#1d1d1f] text-xs">{period.label}</div>
                     <div>{period.start}-{period.end}</div>
                   </td>
                   {Array.from({ length: 7 }, (_, idx) => idx + 1).map((day) => {
-                    const inSlot = courses.filter((c) => c.dayOfWeek === day && isCourseInPeriod(c, period.start, period.end));
+                    const inSlot = courses.filter((c) => isCourseOnDay(c, day) && isCourseInPeriod(c, period.start, period.end));
                     const enrolledInSlot = inSlot.filter((c) => enrolledIds.has(c._id));
                     const active = selectedSlot?.day === day && selectedSlot?.periodId === period.id;
                     return (
-                      <td key={`${period.id}-${day}`} className="border border-gray-200 p-1">
+                      <td key={`${period.id}-${day}`} className="p-1">
                         <button
                           onClick={() => setSelectedSlot({ day, periodId: period.id })}
-                          className={`w-full min-h-[54px] rounded-md text-xs px-1.5 py-2 transition ${
-                            active
-                              ? 'bg-[#0071e3] text-white'
-                              : enrolledInSlot.length > 0
-                              ? 'bg-[#0071e3]/15 text-[#1d1d1f]'
-                              : inSlot.length > 0
-                              ? 'bg-[#f5f5f7] text-[#4b4b50]'
-                              : 'bg-white text-[#b0b0b5]'
-                          }`}
+                          className={`w-full min-h-[48px] rounded-lg text-[11px] px-1.5 py-1.5 transition border ${
+                            active ? 'border-[#0071e3] ring-2 ring-[#0071e3]/20' : 'border-transparent'
+                          } ${enrolledInSlot.length > 0 ? 'bg-[#f8fbff]' : inSlot.length > 0 ? 'bg-[#f5f5f7] text-[#4b4b50]' : 'bg-white text-[#b0b0b5]'}`}
                         >
-                          {enrolledInSlot.length > 0
-                            ? `已选 ${enrolledInSlot.length} 门`
-                            : inSlot.length > 0
-                            ? `${inSlot.length} 门课`
-                            : '空闲'}
+                          {enrolledInSlot.length > 0 ? (
+                            <div className="flex flex-wrap gap-1 justify-center">
+                              {enrolledInSlot.slice(0, 2).map((c) => (
+                                <span key={c._id} className={`px-1.5 py-0.5 rounded border ${colorForCourse(c.name)}`}>
+                                  {c.name}
+                                </span>
+                              ))}
+                              {enrolledInSlot.length > 2 && <span className="text-[10px] text-gray-500">+{enrolledInSlot.length - 2}</span>}
+                            </div>
+                          ) : inSlot.length > 0 ? '有课' : '空闲'}
                         </button>
                       </td>
                     );
@@ -184,7 +223,8 @@ export default function EnrollPage() {
               </div>
               <div className="mt-4 space-y-1 text-[15px] text-[#86868b]">
                 <p>教师：{course.teacher.name}</p>
-                <p>时间：{DAY_NAMES[course.dayOfWeek]} {course.startTime} - {course.endTime}</p>
+                <p>时间：{((Array.isArray(course.scheduleSlots) && course.scheduleSlots.length > 0 ? course.scheduleSlots : [{ dayOfWeek: course.dayOfWeek, startTime: course.startTime, endTime: course.endTime }])
+                  .map((s) => `${DAY_NAMES[s.dayOfWeek]} ${s.startTime}-${s.endTime}`).join(' / '))}</p>
               </div>
               <div className="mt-6">
                 {enrolled ? (

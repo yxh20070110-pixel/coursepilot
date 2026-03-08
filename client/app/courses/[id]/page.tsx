@@ -46,20 +46,15 @@ export default function CourseDetailPage() {
     <div className="max-w-[980px] mx-auto px-6 py-16">
       <div className="mb-12">
         <Link href="/courses" className="text-[15px] text-[#0071e3] hover:underline mb-6 inline-block">← 返回课程列表</Link>
-        <div className="flex flex-wrap items-start justify-between gap-6">
-          <div>
-            <h1 className="text-[40px] font-semibold text-[#1d1d1f] tracking-tight">{course.name}</h1>
-            <div className="mt-4 flex flex-wrap gap-4 text-[17px] text-[#86868b]">
-              <span className="inline-flex items-center gap-1">
-                <span className="w-2 h-2 rounded-full bg-[#0071e3]" />
-                {course.credits} 学分
-              </span>
-              <span>{DAY_NAMES[course.dayOfWeek]} {course.startTime} - {course.endTime}</span>
-            </div>
+        <div>
+          <h1 className="text-[40px] font-semibold text-[#1d1d1f] tracking-tight">{course.name}</h1>
+          <div className="mt-4 flex flex-wrap gap-4 text-[17px] text-[#86868b]">
+            <span className="inline-flex items-center gap-1">
+              <span className="w-2 h-2 rounded-full bg-[#0071e3]" />
+              {course.credits} 学分
+            </span>
+            <span>{DAY_NAMES[course.dayOfWeek]} {course.startTime} - {course.endTime}</span>
           </div>
-          <Link href={`/teachers/${course.teacher._id}`} className="px-6 py-3 rounded-[980px] bg-[#0071e3] text-white text-[15px] font-medium hover:bg-[#0077ed] transition">
-            查看授课教师
-          </Link>
         </div>
       </div>
 
