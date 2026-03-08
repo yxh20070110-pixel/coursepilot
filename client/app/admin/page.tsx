@@ -135,13 +135,7 @@ export default function AdminPage() {
   };
 
   const inputCls = 'px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500';
-  const formatCourseOption = (c: any) => {
-    const slots = (Array.isArray(c.scheduleSlots) && c.scheduleSlots.length > 0)
-      ? c.scheduleSlots
-      : [{ dayOfWeek: c.dayOfWeek, startTime: c.startTime, endTime: c.endTime }];
-    const slotText = slots.map((s: any) => `${DAY[s.dayOfWeek]} ${s.startTime}-${s.endTime}`).join(' / ');
-    return `${c.name}｜${c.teacher?.name || '未知教师'}｜${slotText}`;
-  };
+  const formatCourseOption = (c: any) => c.name;
   const courseOptions = courses.map((c: any) => ({ id: String(c._id), name: c.name, label: formatCourseOption(c) }));
   const applyCourseByValue = (idx: number, value: string) => {
     const matched = courseOptions.find((opt) => opt.label === value) || courseOptions.find((opt) => opt.name === value);
