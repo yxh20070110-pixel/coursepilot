@@ -78,7 +78,7 @@ async function getTeacherProfiles(): Promise<TeacherProfile[]> {
   const [teachers, reviews, comments, courses, likes] = await Promise.all([
     Teacher.find(),
     Review.find(),
-    Comment.find(),
+    Comment.find({ status: 'approved' }),
     Course.find(),
     Like.find(),
   ]);
@@ -132,7 +132,7 @@ async function getTeacherProfiles(): Promise<TeacherProfile[]> {
 async function getCourseProfiles(): Promise<CourseProfile[]> {
   const [courses, courseReviews] = await Promise.all([
     Course.find().populate('teacher'),
-    CourseReview.find(),
+    CourseReview.find({ status: 'approved' }),
   ]);
 
   return courses.map((course: any) => {

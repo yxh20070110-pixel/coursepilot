@@ -1,13 +1,13 @@
 import { Router } from 'express';
 import CourseReview from '../models/CourseReview';
 import Course from '../models/Course';
-import { auth } from '../middleware/auth';
+import { auth, adminAuth } from '../middleware/auth';
 
 const router = Router();
 
 router.get('/course/:courseId', async (req, res) => {
   try {
-    const reviews = await CourseReview.find({ course: req.params.courseId })
+    const reviews = await CourseReview.find({ course: req.params.courseId, status: 'approved' })
       .populate('user', 'name')
       .sort({ createdAt: -1 });
 
@@ -58,11 +58,48 @@ router.post('/', auth, async (req, res) => {
       rating,
       content: content.trim(),
       isAnonymous: !!isAnonymous,
+      status: 'pending',
     });
 
-    res.json(review);
+    res.json({ message: '评价提交成功，待管理员审核', review });
   } catch {
     res.status(500).json({ error: '提交课程评价失败' });
+  }
+});
+
+router.get('/admin/pending', adminAuth, async (_req, res) => {
+  try {
+    const reviews = await CourseReview.find({ status: 'pending' })
+      .populate('user', 'name email')
+      .populate('course', 'name')
+      .sort({ createdAt: -1 });
+    res.json(reviews);
+  } catch {
+    res.status(500).json({ error: '获取待审核课程评价失败' });
+  }
+});
+
+router.put('/admin/:id/review', adminAuth, async (req, res) => {
+  try {
+    const action = String(req.body?.action || '');
+    if (!['approve', 'reject'].includes(action)) {
+      return res.status(400).json({ error: 'action 必须是 approve 或 reject' });
+    }
+    const status = action === 'approve' ? 'approved' : 'rejected';
+    const updated = await CourseReview.findByIdAndUpdate(
+      req.params.id,
+      {
+        status,
+        reviewedBy: req.userId,
+        reviewedAt: new Date(),
+        reviewNote: String(req.body?.reviewNote || ''),
+      },
+      { new: true },
+    );
+    if (!updated) return res.status(404).json({ error: '课程评价不存在' });
+    res.json({ message: status === 'approved' ? '审核通过' : '已驳回' });
+  } catch {
+    res.status(500).json({ error: '审核失败' });
   }
 });
 

@@ -73,7 +73,7 @@ export default function TeacherRatingBlock({ teacherId, compact }: TeacherRating
     try {
       const res = await fetch(`${API_BASE}/comments`, { method: 'POST', headers: authHeaders(), body: JSON.stringify({ teacherId, content: commentText, isAnonymous }) });
       const data = await res.json();
-      if (res.ok) { setCommentStatus({ text: '评论发表成功！', ok: true }); setCommentText(''); fetchComments(); }
+      if (res.ok) { setCommentStatus({ text: '评论提交成功，待管理员审核后展示', ok: true }); setCommentText(''); }
       else setCommentStatus({ text: data.error, ok: false });
     } catch { setCommentStatus({ text: '发表失败', ok: false }); }
     finally { setSubmittingComment(false); }

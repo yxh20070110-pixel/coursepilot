@@ -26,7 +26,7 @@ const TABS: { key: Tab; label: string }[] = [
   { key: 'plans', label: '培养计划' },
   { key: 'photoReview', label: '照片审核' },
   { key: 'import', label: 'Excel 导入' },
-  { key: 'comments', label: '评论管理' }, { key: 'users', label: '用户管理' },
+  { key: 'comments', label: '评论审核' }, { key: 'users', label: '用户管理' },
 ];
 
 function periodIdFromTime(startTime: string) {
@@ -41,7 +41,8 @@ export default function AdminPage() {
   const [courses, setCourses] = useState<any[]>([]);
   const [plans, setPlans] = useState<any[]>([]);
   const [pendingPhotos, setPendingPhotos] = useState<any[]>([]);
-  const [comments, setComments] = useState<any[]>([]);
+  const [pendingTeacherComments, setPendingTeacherComments] = useState<any[]>([]);
+  const [pendingCourseReviews, setPendingCourseReviews] = useState<any[]>([]);
   const [users, setUsers] = useState<any[]>([]);
   const [tForm, setTF] = useState({ name: '', title: '', department: '', researchArea: '', tags: '' });
   const [editT, setEditT] = useState<string | null>(null);
@@ -64,15 +65,22 @@ export default function AdminPage() {
   const fetchAll = useCallback(async () => {
     if (!user || user.role !== 'admin') return;
     const h = authHeaders();
-    const [t, c, p, pp, cm, u] = await Promise.all([
+    const [t, c, p, pp, ptc, pcr, u] = await Promise.all([
       fetch(`${API_BASE}/admin/teachers`, { headers: h }).then(r => r.json()),
       fetch(`${API_BASE}/admin/courses`, { headers: h }).then(r => r.json()),
       fetch(`${API_BASE}/admin/training-plans`, { headers: h }).then(r => r.json()),
       fetch(`${API_BASE}/photos/admin/pending`, { headers: h }).then(r => r.json()),
-      fetch(`${API_BASE}/admin/comments`, { headers: h }).then(r => r.json()),
+      fetch(`${API_BASE}/comments/admin/pending`, { headers: h }).then(r => r.json()),
+      fetch(`${API_BASE}/course-reviews/admin/pending`, { headers: h }).then(r => r.json()),
       fetch(`${API_BASE}/admin/users`, { headers: h }).then(r => r.json()),
     ]);
-    setTeachers(t); setCourses(c); setPlans(p); setPendingPhotos(Array.isArray(pp) ? pp : []); setComments(cm); setUsers(u);
+    setTeachers(t);
+    setCourses(c);
+    setPlans(p);
+    setPendingPhotos(Array.isArray(pp) ? pp : []);
+    setPendingTeacherComments(Array.isArray(ptc) ? ptc : []);
+    setPendingCourseReviews(Array.isArray(pcr) ? pcr : []);
+    setUsers(u);
   }, [user]);
 
   useEffect(() => { fetchAll(); }, [fetchAll]);
@@ -109,7 +117,14 @@ export default function AdminPage() {
     }); setEditC(null); fetchAll();
   };
   const delC = async (id: string) => { if (!confirm('确定删除？')) return; await fetch(`${API_BASE}/admin/courses/${id}`, { method: 'DELETE', headers: h }); fetchAll(); };
-  const delCm = async (id: string) => { if (!confirm('确定删除？')) return; await fetch(`${API_BASE}/admin/comments/${id}`, { method: 'DELETE', headers: h }); fetchAll(); };
+  const reviewTeacherComment = async (id: string, action: 'approve' | 'reject') => {
+    await fetch(`${API_BASE}/comments/admin/${id}/review`, { method: 'PUT', headers: h, body: JSON.stringify({ action }) });
+    fetchAll();
+  };
+  const reviewCourseComment = async (id: string, action: 'approve' | 'reject') => {
+    await fetch(`${API_BASE}/course-reviews/admin/${id}/review`, { method: 'PUT', headers: h, body: JSON.stringify({ action }) });
+    fetchAll();
+  };
   const reviewPhoto = async (photoId: string, action: 'approve' | 'reject') => {
     await fetch(`${API_BASE}/photos/admin/${photoId}/review`, {
       method: 'PUT',
@@ -380,25 +395,34 @@ export default function AdminPage() {
 
       {tab === 'comments' && (
         <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead><tr className="text-left border-b border-gray-200">
-                <th className="pb-3 font-medium text-gray-500">用户</th><th className="pb-3 font-medium text-gray-500">教师</th>
-                <th className="pb-3 font-medium text-gray-500">内容</th><th className="pb-3 font-medium text-gray-500">匿名</th>
-                <th className="pb-3 font-medium text-gray-500">时间</th><th className="pb-3 font-medium text-gray-500">操作</th>
-              </tr></thead>
-              <tbody>{comments.map((c: any) => (
-                <tr key={c._id} className="border-b border-gray-50">
-                  <td className="py-3"><div className="font-medium">{c.user?.name || '-'}</div><div className="text-xs text-gray-400">{c.user?.email}</div></td>
-                  <td className="py-3 text-gray-600">{c.teacher?.name || '-'}</td>
-                  <td className="py-3 text-gray-600 max-w-xs"><div className="truncate">{c.content}</div></td>
-                  <td className="py-3">{c.isAnonymous ? <span className="text-xs bg-yellow-100 text-yellow-700 px-2 py-0.5 rounded-full">匿名</span> : <span className="text-xs text-gray-400">公开</span>}</td>
-                  <td className="py-3 text-gray-400 text-xs whitespace-nowrap">{new Date(c.createdAt).toLocaleDateString('zh-CN')}</td>
-                  <td className="py-3"><button onClick={() => delCm(c._id)} className="text-red-600 hover:underline">删除</button></td>
-                </tr>
-              ))}</tbody>
-            </table>
-            {comments.length === 0 && <p className="text-center text-gray-400 py-8">暂无评论</p>}
+          <h2 className="text-xl font-semibold text-gray-900 mb-4">待审核教师评论</h2>
+          <div className="space-y-3">
+            {pendingTeacherComments.map((c: any) => (
+              <div key={c._id} className="border border-gray-100 rounded-xl p-4">
+                <p className="text-sm text-gray-500">{c.user?.name || '-'}（{c.user?.email || '-'}） · 教师：{c.teacher?.name || '-'}</p>
+                <p className="text-sm text-gray-700 mt-2">{c.content}</p>
+                <div className="mt-3 flex gap-2">
+                  <button onClick={() => reviewTeacherComment(c._id, 'approve')} className="px-3 py-1.5 rounded-lg bg-green-600 text-white text-xs hover:bg-green-700 transition">通过</button>
+                  <button onClick={() => reviewTeacherComment(c._id, 'reject')} className="px-3 py-1.5 rounded-lg bg-red-600 text-white text-xs hover:bg-red-700 transition">驳回</button>
+                </div>
+              </div>
+            ))}
+            {pendingTeacherComments.length === 0 && <p className="text-sm text-gray-400">暂无待审核教师评论</p>}
+          </div>
+
+          <h2 className="text-xl font-semibold text-gray-900 mt-8 mb-4">待审核课程评价</h2>
+          <div className="space-y-3">
+            {pendingCourseReviews.map((r: any) => (
+              <div key={r._id} className="border border-gray-100 rounded-xl p-4">
+                <p className="text-sm text-gray-500">{r.user?.name || '-'}（{r.user?.email || '-'}） · 课程：{r.course?.name || '-'} · 评分：{r.rating}/5</p>
+                <p className="text-sm text-gray-700 mt-2">{r.content}</p>
+                <div className="mt-3 flex gap-2">
+                  <button onClick={() => reviewCourseComment(r._id, 'approve')} className="px-3 py-1.5 rounded-lg bg-green-600 text-white text-xs hover:bg-green-700 transition">通过</button>
+                  <button onClick={() => reviewCourseComment(r._id, 'reject')} className="px-3 py-1.5 rounded-lg bg-red-600 text-white text-xs hover:bg-red-700 transition">驳回</button>
+                </div>
+              </div>
+            ))}
+            {pendingCourseReviews.length === 0 && <p className="text-sm text-gray-400">暂无待审核课程评价</p>}
           </div>
         </div>
       )}

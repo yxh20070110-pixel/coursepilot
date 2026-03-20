@@ -62,10 +62,9 @@ export default function CourseReviewBlock({ courseId }: { courseId: string }) {
       if (!res.ok) {
         setStatus(d.error || '提交失败');
       } else {
-        setStatus('评价提交成功');
+        setStatus('评价提交成功，待管理员审核后展示');
         setContent('');
         setIsAnonymous(false);
-        fetchData();
       }
     } catch {
       setStatus('提交失败，请重试');
