@@ -58,7 +58,7 @@ export default function PhotoWall({ type, targetId, title }: PhotoWallProps) {
       if (!res.ok) {
         setStatus(data.error || '上传失败');
       } else {
-        setStatus('上传成功');
+        setStatus(type === 'course' ? '上传成功，待管理员审核后显示' : '上传成功');
         setCaption('');
         fetchPhotos();
       }
@@ -113,7 +113,9 @@ export default function PhotoWall({ type, targetId, title }: PhotoWallProps) {
           <div className="w-8 h-8 border-2 border-[#86868b] border-t-transparent rounded-full animate-spin" />
         </div>
       ) : photos.length === 0 ? (
-        <p className="text-center text-[#86868b] py-8">暂无照片，上传第一张课堂照片吧。</p>
+        <p className="text-center text-[#86868b] py-8">
+          {type === 'course' ? '暂无已发布照片，上传后需管理员审核。' : '暂无照片，上传第一张课堂照片吧。'}
+        </p>
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
           {photos.map((photo) => (

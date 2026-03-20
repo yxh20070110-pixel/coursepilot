@@ -2,10 +2,10 @@
 
 import { useEffect, useState, useCallback } from 'react';
 import { useAuth } from '@/app/providers';
-import { API_BASE, authHeaders } from '@/lib/api';
+import { API_BASE, SERVER_BASE, authHeaders } from '@/lib/api';
 import { useRouter } from 'next/navigation';
 
-type Tab = 'teachers' | 'courses' | 'plans' | 'import' | 'comments' | 'users';
+type Tab = 'teachers' | 'courses' | 'plans' | 'photoReview' | 'import' | 'comments' | 'users';
 const DAY = ['', '周一', '周二', '周三', '周四', '周五', '周六', '周日'];
 const PERIODS = [
   { id: 1, start: '08:00', end: '08:45' },
@@ -24,6 +24,7 @@ const PERIODS = [
 const TABS: { key: Tab; label: string }[] = [
   { key: 'teachers', label: '教师管理' }, { key: 'courses', label: '课程管理' },
   { key: 'plans', label: '培养计划' },
+  { key: 'photoReview', label: '照片审核' },
   { key: 'import', label: 'Excel 导入' },
   { key: 'comments', label: '评论管理' }, { key: 'users', label: '用户管理' },
 ];
@@ -39,6 +40,7 @@ export default function AdminPage() {
   const [teachers, setTeachers] = useState<any[]>([]);
   const [courses, setCourses] = useState<any[]>([]);
   const [plans, setPlans] = useState<any[]>([]);
+  const [pendingPhotos, setPendingPhotos] = useState<any[]>([]);
   const [comments, setComments] = useState<any[]>([]);
   const [users, setUsers] = useState<any[]>([]);
   const [tForm, setTF] = useState({ name: '', title: '', department: '', researchArea: '', tags: '' });
@@ -62,14 +64,15 @@ export default function AdminPage() {
   const fetchAll = useCallback(async () => {
     if (!user || user.role !== 'admin') return;
     const h = authHeaders();
-    const [t, c, p, cm, u] = await Promise.all([
+    const [t, c, p, pp, cm, u] = await Promise.all([
       fetch(`${API_BASE}/admin/teachers`, { headers: h }).then(r => r.json()),
       fetch(`${API_BASE}/admin/courses`, { headers: h }).then(r => r.json()),
       fetch(`${API_BASE}/admin/training-plans`, { headers: h }).then(r => r.json()),
+      fetch(`${API_BASE}/photos/admin/pending`, { headers: h }).then(r => r.json()),
       fetch(`${API_BASE}/admin/comments`, { headers: h }).then(r => r.json()),
       fetch(`${API_BASE}/admin/users`, { headers: h }).then(r => r.json()),
     ]);
-    setTeachers(t); setCourses(c); setPlans(p); setComments(cm); setUsers(u);
+    setTeachers(t); setCourses(c); setPlans(p); setPendingPhotos(Array.isArray(pp) ? pp : []); setComments(cm); setUsers(u);
   }, [user]);
 
   useEffect(() => { fetchAll(); }, [fetchAll]);
@@ -107,6 +110,14 @@ export default function AdminPage() {
   };
   const delC = async (id: string) => { if (!confirm('确定删除？')) return; await fetch(`${API_BASE}/admin/courses/${id}`, { method: 'DELETE', headers: h }); fetchAll(); };
   const delCm = async (id: string) => { if (!confirm('确定删除？')) return; await fetch(`${API_BASE}/admin/comments/${id}`, { method: 'DELETE', headers: h }); fetchAll(); };
+  const reviewPhoto = async (photoId: string, action: 'approve' | 'reject') => {
+    await fetch(`${API_BASE}/photos/admin/${photoId}/review`, {
+      method: 'PUT',
+      headers: h,
+      body: JSON.stringify({ action }),
+    });
+    fetchAll();
+  };
   const saveP = async () => {
     const items = pForm.selectedCourseIds
       .map((id) => courses.find((c: any) => String(c._id) === id))
@@ -336,6 +347,32 @@ export default function AdminPage() {
                   </table>
                 </div>
               )}
+            </div>
+          )}
+        </div>
+      )}
+
+      {tab === 'photoReview' && (
+        <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
+          <h2 className="text-xl font-semibold text-gray-900 mb-4">课程照片审核</h2>
+          {pendingPhotos.length === 0 ? (
+            <p className="text-sm text-gray-400">暂无待审核照片</p>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+              {pendingPhotos.map((p: any) => (
+                <div key={p.id} className="border border-gray-100 rounded-xl overflow-hidden bg-[#fafafa]">
+                  <img src={`${SERVER_BASE}${p.imageUrl}`} alt={p.caption || '待审核照片'} className="w-full h-44 object-cover" />
+                  <div className="p-4">
+                    <p className="text-sm font-medium text-gray-900 line-clamp-2">{p.caption || '无说明'}</p>
+                    <p className="text-xs text-gray-500 mt-2">课程：{p.courseName}</p>
+                    <p className="text-xs text-gray-500">上传者：{p.userName}（{p.userStudentId}）</p>
+                    <div className="mt-3 flex gap-2">
+                      <button onClick={() => reviewPhoto(p.id, 'approve')} className="px-3 py-1.5 rounded-lg bg-green-600 text-white text-xs hover:bg-green-700 transition">通过</button>
+                      <button onClick={() => reviewPhoto(p.id, 'reject')} className="px-3 py-1.5 rounded-lg bg-red-600 text-white text-xs hover:bg-red-700 transition">驳回</button>
+                    </div>
+                  </div>
+                </div>
+              ))}
             </div>
           )}
         </div>
